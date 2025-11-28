@@ -1,0 +1,86 @@
+import { useRef, useState, useEffect } from "react";
+import { FaTrash, FaPlus } from "react-icons/fa";
+import "./Image.css";
+
+export default function Image() {
+  const [images, setImages] = useState([]);
+  const fileInputRef = useRef(null);
+
+  // Load persisted images
+  useEffect(() => {
+    const stored = localStorage.getItem("myImages");
+    if (stored) {
+      setImages(JSON.parse(stored));
+    }
+  }, []);
+
+  // Save images whenever they change
+  useEffect(() => {
+    localStorage.setItem("myImages", JSON.stringify(images));
+  }, [images]);
+
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files);
+
+    const convertToBase64 = (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+    const mapped = await Promise.all(
+      files.map(async (file) => ({
+        url: await convertToBase64(file),
+        name: file.name,
+      }))
+    );
+
+    setImages((prev) => [...prev, ...mapped]);
+  };
+
+  const removeImage = (url) => {
+    setImages((prev) => prev.filter((img) => img.url !== url));
+  };
+
+  return (
+    <div className="upload-container">
+      <h3>Upload your images</h3>
+
+      <button
+        className="upload-btn"
+        onClick={() => fileInputRef.current.click()}
+      >
+        Upload Images
+      </button>
+
+      <div className="grid-wrapper">
+        {images.map((img) => (
+          <div className="img-box" key={img.url}>
+            <img src={img.url} alt="" className="img-content" />
+
+            <div className="delete-overlay" onClick={() => removeImage(img.url)}>
+              <FaTrash size={28} />
+            </div>
+          </div>
+        ))}
+
+        <div
+          className="img-box add-box"
+          onClick={() => fileInputRef.current.click()}
+        >
+          <FaPlus size={36} />
+        </div>
+      </div>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleFiles}
+        multiple
+      />
+    </div>
+  );
+}
